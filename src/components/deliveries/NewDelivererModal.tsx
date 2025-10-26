@@ -5,8 +5,6 @@ import { delivererSchema } from '../../validation/delivererSchema';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
-import { useDeliveryStore } from '../../store/deliveryStore';
-import { generateId } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 
 interface NewDelivererModalProps {
@@ -15,7 +13,6 @@ interface NewDelivererModalProps {
 }
 
 export default function NewDelivererModal({ isOpen, onClose }: NewDelivererModalProps) {
-  const addDeliverer = useDeliveryStore(state => state.addDeliverer);
   const [isLoading, setIsLoading] = useState(false);
   const {
     control,
@@ -29,17 +26,10 @@ export default function NewDelivererModal({ isOpen, onClose }: NewDelivererModal
       phone: '',
     },
   });
-  const onSubmit = async (data: any) => {
+  const onSubmit = async () => {
     setIsLoading(true);
     try {
-      const newDeliverer = {
-        id: generateId(),
-        name: data.name,
-        phone: data.phone,
-        isAvailable: true,
-        currentDeliveries: 0,
-      };
-      addDeliverer(newDeliverer);
+      // TODO: Implement addDeliverer in store to save deliverer to users collection with role='deliverer'
       toast.success('Entregador adicionado com sucesso!');
       reset();
       onClose();

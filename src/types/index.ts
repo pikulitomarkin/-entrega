@@ -21,6 +21,22 @@ export const DeliveryStatus = {
 
 export type DeliveryStatus = typeof DeliveryStatus[keyof typeof DeliveryStatus];
 
+// Types para usuários/roles
+export type UserRole = 'admin' | 'deliverer' | 'customer';
+export type UserStatus = 'pending' | 'approved' | 'rejected';
+
+// Interface do Usuário
+export interface User {
+  id: string;
+  username: string;
+  email?: string;
+  role: UserRole;
+  name?: string;
+  phone?: string;
+  status?: UserStatus;
+  createdAt: Date;
+}
+
 // Interface do Cliente
 export interface Customer {
   id: string;

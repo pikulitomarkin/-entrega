@@ -1,10 +1,10 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-
-export type UserRole = 'admin' | 'usuario';
+import type { User, UserRole } from '../types';
 
 interface AuthContextType {
-  user: null | { username: string; role: UserRole };
+  user: User | null;
+  loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -12,15 +12,31 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<null | { username: string; role: UserRole }>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading] = useState(false);
 
-  async function login(username: string, password: string) {
-    // Simulação: admin/admin = admin, qualquer outro = usuario
-    if (username === 'admin' && password === 'admin') {
-      setUser({ username, role: 'admin' });
+  async function login(emailOrUsername: string, password: string) {
+    // Simulação: admin@oentrega.com/123456 = admin, qualquer outro = deliverer
+    if ((emailOrUsername === 'admin' || emailOrUsername === 'admin@oentrega.com') && password === '123456') {
+      setUser({
+        id: 'admin-1',
+        username: 'admin',
+        email: 'admin@oentrega.com',
+        role: 'admin' as UserRole,
+        name: 'Administrador',
+        createdAt: new Date()
+      });
       return true;
-    } else if (username && password) {
-      setUser({ username, role: 'usuario' });
+    } else if (emailOrUsername && password) {
+      // Accept any other credentials for demo purposes
+      setUser({
+        id: Date.now().toString(),
+        username: emailOrUsername,
+        email: emailOrUsername,
+        role: 'deliverer' as UserRole,
+        name: emailOrUsername,
+        createdAt: new Date()
+      });
       return true;
     }
     return false;
@@ -31,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

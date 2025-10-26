@@ -1,43 +1,38 @@
-import { useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { useLocalStoragePersistence } from './hooks/useLocalStorage';
-import { useOrderStore } from './store/orderStore';
-import { mockOrders } from './lib/mockData';
+import { AuthProvider } from './hooks/useAuth';
+import { Toaster } from 'react-hot-toast';
 
 interface AppWrapperProps {
   children: ReactNode;
 }
 
 export default function AppWrapper({ children }: AppWrapperProps) {
-  useLocalStoragePersistence();
-  useEffect(() => {
-    // Carregar dados do localStorage ou usar mock data
-    const savedOrders = localStorage.getItem('oentrega-orders');
-
-    if (!savedOrders || JSON.parse(savedOrders).length === 0) {
-      // Primeira vez rodando, carregar dados mock
-      mockOrders.forEach(order => {
-        useOrderStore.getState().addOrder(order);
-      });
-    } else {
-      // Carregar dados salvos
-      const orders = JSON.parse(savedOrders);
-      orders.forEach((order: any) => {
-        order.createdAt = new Date(order.createdAt);
-        order.updatedAt = new Date(order.updatedAt);
-        if (order.readyAt) order.readyAt = new Date(order.readyAt);
-        useOrderStore.getState().addOrder(order);
-      });
-    }
-  }, []);
-
-  // Salvar no localStorage quando dados mudarem
-  const orders = useOrderStore(state => state.orders);
-  useEffect(() => {
-    if (orders.length > 0) {
-      localStorage.setItem('oentrega-orders', JSON.stringify(orders));
-    }
-  }, [orders]);
-
-  return <>{children}</>;
+  return (
+    <AuthProvider>
+      {children}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#dc2626',
+            color: '#ffffff',
+            border: '1px solid #b91c1c',
+            borderRadius: '0.5rem',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#dc2626',
+              secondary: '#ffffff',
+            },
+          },
+        }}
+      />
+    </AuthProvider>
+  );
 }

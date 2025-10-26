@@ -27,8 +27,29 @@ npm install
 npm run dev
 ```
 
-### Backend (Node.js)
-Veja instruções detalhadas em `PROJECT_SETUP.md`.
+### Backend (WhatsApp Bot)
+
+1. **Navegue até a pasta do bot:**
+   ```bash
+   cd whatsapp-bot
+   ```
+
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure as variáveis de ambiente:**
+   - Crie um arquivo chamado `.env` dentro da pasta `whatsapp-bot`.
+   - Adicione sua chave da OpenAI neste formato:
+     ```
+     OPENAI_API_KEY=sua_chave_aqui
+     ```
+
+4. **Inicie o bot:**
+   ```bash
+   npm start
+   ```
 
 ## Estrutura de pastas
 ```

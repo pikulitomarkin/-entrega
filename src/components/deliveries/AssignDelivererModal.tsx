@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
-import type { Order } from '../../types';
 import type { Deliverer } from '../../types';
 
 interface AssignDelivererModalProps {
   isOpen: boolean;
   onClose: () => void;
-  order: Order;
   deliverers: Deliverer[];
   onAssign: (delivererId: string) => void;
 }
 
-export default function AssignDelivererModal({ isOpen, onClose, order, deliverers, onAssign }: AssignDelivererModalProps) {
+export default function AssignDelivererModal({ isOpen, onClose, deliverers, onAssign }: AssignDelivererModalProps) {
   const [selectedDeliverer, setSelectedDeliverer] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 

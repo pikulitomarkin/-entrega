@@ -1,54 +1,58 @@
 import { create } from 'zustand';
 import type { Order, OrderStatus } from '../types';
-import { OrderStatus as OrderStatusEnum } from '../types';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 
 interface OrderStore {
   orders: Order[];
-  addOrder: (order: Order) => void;
-  updateOrder: (id: string, updates: Partial<Order>) => void;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
-  deleteOrder: (id: string) => void;
-  getOrderById: (id: string) => Order | undefined;
-  getOrdersByStatus: (status: OrderStatus) => Order[];
+  subscribeToOrders: () => () => void; // Returns an unsubscribe function
+  addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateOrder: (id: string, updates: Partial<Order>) => Promise<void>;
+  updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
 }
 
-export const useOrderStore = create<OrderStore>((set, get) => ({
+export const useOrderStore = create<OrderStore>((set) => ({
   orders: [],
 
-  addOrder: (order) => set((state) => ({
-    orders: [...state.orders, order]
-  })),
-
-  updateOrder: (id, updates) => set((state) => ({
-    orders: state.orders.map(order =>
-      order.id === id
-        ? { ...order, ...updates, updatedAt: new Date() }
-        : order
-    )
-  })),
-
-  updateOrderStatus: (id, status) => set((state) => ({
-    orders: state.orders.map(order =>
-      order.id === id
-        ? {
-            ...order,
-            status,
-            updatedAt: new Date(),
-            readyAt: status === OrderStatusEnum.READY ? new Date() : order.readyAt
-          }
-        : order
-    )
-  })),
-
-  deleteOrder: (id) => set((state) => ({
-    orders: state.orders.filter(order => order.id !== id)
-  })),
-
-  getOrderById: (id) => {
-    return get().orders.find(order => order.id === id);
+  subscribeToOrders: () => {
+    const q = collection(db, 'orders');
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const orders = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: (data.createdAt as Timestamp).toDate(),
+          updatedAt: data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined,
+          readyAt: data.readyAt ? (data.readyAt as Timestamp).toDate() : undefined,
+        } as Order;
+      });
+      set({ orders });
+    });
+    return unsubscribe;
   },
 
-  getOrdersByStatus: (status) => {
-    return get().orders.filter(order => order.status === status);
-  }
+  addOrder: async (order) => {
+    await addDoc(collection(db, 'orders'), {
+      ...order,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  },
+
+  updateOrder: async (id, updates) => {
+    const orderDoc = doc(db, 'orders', id);
+    await updateDoc(orderDoc, { ...updates, updatedAt: new Date() });
+  },
+
+  updateOrderStatus: async (id, status) => {
+    const orderDoc = doc(db, 'orders', id);
+    await updateDoc(orderDoc, { status, updatedAt: new Date() });
+  },
+
+  deleteOrder: async (id) => {
+    const orderDoc = doc(db, 'orders', id);
+    await deleteDoc(orderDoc);
+  },
 }));

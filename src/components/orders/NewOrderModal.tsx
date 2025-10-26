@@ -16,14 +16,6 @@ interface NewOrderModalProps {
   onClose: () => void;
 }
 
-interface OrderItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-  notes?: string;
-}
-
 export default function NewOrderModal({ isOpen, onClose }: NewOrderModalProps) {
   const addOrder = useOrderStore(state => state.addOrder);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +31,7 @@ export default function NewOrderModal({ isOpen, onClose }: NewOrderModalProps) {
       customerPhone: '',
       customerAddress: '',
       orderNotes: '',
-      items: [{ name: '', quantity: 1, price: 0 }],
+      items: [{ id: generateId(), name: '', quantity: 1, price: 0 }],
     },
   });
   const { fields, append, remove } = useFieldArray({
@@ -51,7 +43,7 @@ export default function NewOrderModal({ isOpen, onClose }: NewOrderModalProps) {
   };
 
   const handleAddItem = () => {
-    append({ name: '', quantity: 1, price: 0 });
+    append({ id: generateId(), name: '', quantity: 1, price: 0 });
   };
   const onSubmit = async (data: any) => {
     setIsLoading(true);

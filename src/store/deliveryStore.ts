@@ -1,79 +1,73 @@
 import { create } from 'zustand';
 import type { Delivery, Deliverer, DeliveryStatus } from '../types';
-import { DeliveryStatus as DeliveryStatusEnum } from '../types';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot, addDoc, updateDoc, doc, query, where, Timestamp } from 'firebase/firestore';
 
 interface DeliveryStore {
   deliveries: Delivery[];
   deliverers: Deliverer[];
-  addDelivery: (delivery: Delivery) => void;
-  updateDelivery: (id: string, updates: Partial<Delivery>) => void;
-  updateDeliveryStatus: (id: string, status: DeliveryStatus) => void;
-  assignDeliverer: (deliveryId: string, deliverer: Deliverer) => void;
-  getDeliveryByOrderId: (orderId: string) => Delivery | undefined;
-  addDeliverer: (deliverer: Deliverer) => void;
-  updateDeliverer: (id: string, updates: Partial<Deliverer>) => void;
-  getAvailableDeliverers: () => Deliverer[];
+  subscribeToDeliveries: () => () => void;
+  subscribeToDeliverers: () => () => void;
+  addDelivery: (delivery: Omit<Delivery, 'id'>) => Promise<void>;
+  updateDeliveryStatus: (id: string, status: DeliveryStatus) => Promise<void>;
+  assignDeliverer: (deliveryId: string, delivererId: string) => Promise<void>;
 }
 
-export const useDeliveryStore = create<DeliveryStore>((set, get) => ({
+export const useDeliveryStore = create<DeliveryStore>((set) => ({
   deliveries: [],
   deliverers: [],
 
-  addDelivery: (delivery) => set((state) => ({
-    deliveries: [...state.deliveries, delivery]
-  })),
-
-  updateDelivery: (id, updates) => set((state) => ({
-    deliveries: state.deliveries.map(delivery =>
-      delivery.id === id ? { ...delivery, ...updates } : delivery
-    )
-  })),
-
-  updateDeliveryStatus: (id, status) => set((state) => ({
-    deliveries: state.deliveries.map(delivery =>
-      delivery.id === id
-        ? {
-            ...delivery,
-            status,
-            pickupTime: status === DeliveryStatusEnum.PICKED_UP && !delivery.pickupTime
-              ? new Date()
-              : delivery.pickupTime,
-            deliveryTime: status === DeliveryStatusEnum.DELIVERED
-              ? new Date()
-              : delivery.deliveryTime
-          }
-        : delivery
-    )
-  })),
-
-  assignDeliverer: (deliveryId, deliverer) => set((state) => ({
-    deliveries: state.deliveries.map(delivery =>
-      delivery.id === deliveryId
-        ? { ...delivery, deliverer, status: DeliveryStatusEnum.ASSIGNED }
-        : delivery
-    ),
-    deliverers: state.deliverers.map(d =>
-      d.id === deliverer.id
-        ? { ...d, currentDeliveries: d.currentDeliveries + 1 }
-        : d
-    )
-  })),
-
-  getDeliveryByOrderId: (orderId) => {
-    return get().deliveries.find(delivery => delivery.orderId === orderId);
+  subscribeToDeliveries: () => {
+    const q = collection(db, 'deliveries');
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const deliveries = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          orderId: data.orderId,
+          status: data.status,
+          deliverer: data.deliverer,
+          createdAt: data.createdAt ? (data.createdAt as Timestamp).toDate() : new Date(),
+          assignedAt: data.assignedAt ? (data.assignedAt as Timestamp).toDate() : undefined,
+          pickupTime: data.pickupTime ? (data.pickupTime as Timestamp).toDate() : undefined,
+          deliveryTime: data.deliveryTime ? (data.deliveryTime as Timestamp).toDate() : undefined,
+        } as Delivery;
+      });
+      set({ deliveries });
+    });
+    return unsubscribe;
   },
 
-  addDeliverer: (deliverer) => set((state) => ({
-    deliverers: [...state.deliverers, deliverer]
-  })),
+  subscribeToDeliverers: () => {
+    const q = query(collection(db, 'users'), where('role', '==', 'deliverer'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const deliverers = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Deliverer));
+      set({ deliverers });
+    });
+    return unsubscribe;
+  },
 
-  updateDeliverer: (id, updates) => set((state) => ({
-    deliverers: state.deliverers.map(deliverer =>
-      deliverer.id === id ? { ...deliverer, ...updates } : deliverer
-    )
-  })),
+  addDelivery: async (delivery) => {
+    await addDoc(collection(db, 'deliveries'), delivery);
+  },
 
-  getAvailableDeliverers: () => {
-    return get().deliverers.filter(d => d.isAvailable && d.currentDeliveries < 3);
-  }
+  updateDeliveryStatus: async (id, status) => {
+    const deliveryDoc = doc(db, 'deliveries', id);
+    const updates: Partial<Delivery> = { status };
+    if (status === 'picked_up') updates.pickupTime = new Date();
+    if (status === 'delivered') updates.deliveryTime = new Date();
+    await updateDoc(deliveryDoc, updates);
+  },
+
+  assignDeliverer: async (deliveryId, delivererId) => {
+    const deliveryDoc = doc(db, 'deliveries', deliveryId);
+    await updateDoc(deliveryDoc, { 
+      delivererId,
+      status: 'assigned',
+      assignedAt: new Date(),
+    });
+  },
 }));

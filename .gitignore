@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# WhatsApp Bot
+/whatsapp-bot/.env
+/whatsapp-bot/.wwebjs_auth/
+/whatsapp-bot/whatsapp-bot.log
+
