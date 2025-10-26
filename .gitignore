@@ -27,4 +27,5 @@ dist-ssr
 /whatsapp-bot/.env
 /whatsapp-bot/.wwebjs_auth/
 /whatsapp-bot/whatsapp-bot.log
+/whatsapp-bot/serviceAccountKey.json
 
